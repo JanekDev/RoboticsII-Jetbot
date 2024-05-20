@@ -5,10 +5,19 @@ import os
 import pandas as pd
 import cv2
 import numpy as np
+import albumentations as A
 
 DEBUG = True
 DATASET_PATH = 'dataset'
-BATCH_SZIE = 32
+BATCH_SIZE = 32
+
+transform = A.Compose([
+    A.HorizontalFlip(p=0.5),
+    A.RandomBrightnessContrast(p=0.2),
+    A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.1, rotate_limit=15, p=0.5),
+    A.GaussNoise(p=0.2),
+    A.Resize(224, 224)
+])
 
 def load_data(data_folder_path: str, debug: bool = True) -> tuple[list[np.ndarray], list[np.ndarray]]:
     '''
@@ -33,7 +42,16 @@ def load_data(data_folder_path: str, debug: bool = True) -> tuple[list[np.ndarra
         for frame_idx in frame_indices:
             fram_idx_pad = str(frame_idx).zfill(4)
             img_name = f'{fram_idx_pad}.jpg'
-            img = cv2.imread(os.path.join(data_folder_path, folder, img_name))
+            
+            if os.path.exists(os.path.join(data_folder_path, folder, img_name)):
+                img = cv2.imread(os.path.join(data_folder_path, folder, img_name))
+            else:
+                print(f'File {img_name} not found in {os.path.join(data_folder_path, folder)}')
+                continue
+            
+            augmented = transform(image=img)
+            img = augmented['image']
+            
             # Move the channel axis to the first dimension
             img = np.moveaxis(img, -1, 0)
             images.append(img)
@@ -42,6 +60,7 @@ def load_data(data_folder_path: str, debug: bool = True) -> tuple[list[np.ndarra
         
     if debug:
         print(f'Number of distinct runs in data: {len(X)}')
+        print(f'Run lengths in frames (dataset size before augmentations): {[len(run) for run in X]}')
         print(f'Dimension of the first run: {len(X[0])} images')
         print(f'Dimension of the first image: {X[0][0].shape}')
         print(f'Number of distinct runs in labels: {len(Y)}')
