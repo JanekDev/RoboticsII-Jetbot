@@ -56,8 +56,11 @@ class AI:
         detections = self.sess.run([self.output_name], {self.input_name: inputs})[0]
         outputs = self.postprocess(detections)
         
-        self.update_buffer(outputs)
-        steering_signal = self.calculate_steering()
+        if self.buffer_size > 1:
+            self.update_buffer(outputs)
+            steering_signal = self.calculate_steering()
+        else:
+            steering_signal = outputs
 
         assert steering_signal.dtype == np.float32
         assert steering_signal.shape == (2,)
