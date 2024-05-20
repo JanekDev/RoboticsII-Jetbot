@@ -16,6 +16,9 @@ class AI:
  
         self.output_name = self.sess.get_outputs()[0].name
         self.input_name = self.sess.get_inputs()[0].name
+        
+        self.buffer_size = config['robot']['buffer_size']
+        self.buffer = np.zeros((self.buffer_size, 2))
 
     def preprocess(self, img: np.ndarray) -> np.ndarray:
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -28,6 +31,21 @@ class AI:
     def postprocess(self, detections: np.ndarray) -> np.ndarray:
         detections = np.clip(detections, -1.0, 1.0)
         return detections
+    
+    def update_buffer(self, steering_signal: tuple[float, float]) -> None:
+        self.buffer[:-1] = self.buffer[1:]
+        self.buffer[-1] = steering_signal
+        
+    def calculate_steering(self) -> tuple[float, float]:
+        # Calculate as the exponential moving average of the last buffer_size signals
+        weights = np.exp(np.arange(self.buffer_size)) # Exponential weights, the latest signal has the highest weight
+        weights /= weights.sum()
+        weights = np.expand_dims(weights, 1)
+
+        steering_signal = (self.buffer * weights).sum(axis=0)
+        
+        return steering_signal
+        
 
     def predict(self, img: np.ndarray) -> np.ndarray:
         inputs = self.preprocess(img)
@@ -37,13 +55,16 @@ class AI:
         
         detections = self.sess.run([self.output_name], {self.input_name: inputs})[0]
         outputs = self.postprocess(detections)
+        
+        self.update_buffer(outputs)
+        steering_signal = self.calculate_steering()
 
-        assert outputs.dtype == np.float32
-        assert outputs.shape == (2,)
-        assert outputs.max() < 1.0
-        assert outputs.min() > -1.0
+        assert steering_signal.dtype == np.float32
+        assert steering_signal.shape == (2,)
+        assert steering_signal.max() < 1.0
+        assert steering_signal.min() > -1.0
 
-        return outputs
+        return steering_signal
 
 
 def main():
