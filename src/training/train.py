@@ -13,11 +13,11 @@ from onnxruntime.transformers import optimizer
 
 print(os.getcwd())
 
-from dataloading_utils import load_data, train_test_split, create_dataloader
-from models import SimpleCNN
+from dataloading_utils import load_data, train_test_split, create_dataloader, create_synth_data
+from models import SimpleCNN, SimpleCNN2
 
 class Trainer:
-    def __init__(self, model: nn.Module, train_loader: DataLoader, test_loader: DataLoader, lr: float = 0.001, epochs: int = 10) -> None:
+    def __init__(self, model: nn.Module, train_loader: DataLoader, test_loader: DataLoader, lr: float = 1e-3, weight_decay: float = 1e-5, epochs: int = 10) -> None:
         self.model = model
         self.train_loader = train_loader
         self.test_loader = test_loader
@@ -28,7 +28,7 @@ class Trainer:
         self.model.to(self.device)
         
         self.criterion = nn.HuberLoss()
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr, weight_decay=1e-5)
         
         self.loss_history = []
         self.test_history = []
@@ -135,20 +135,35 @@ if __name__ == '__main__':
     
     dataset_path = 'dataset'
     debug = True
-    batch_size = 256
+    batch_size = 64
     lr = 2e-4
-    epochs = 10
+    w_decay = 1e-5
+    epochs = 15
     
     data, labels = load_data(dataset_path, debug=debug)
     
-    train_data, test_data, train_labels, test_labels = train_test_split(data, labels, test_size=0.2, debug=debug)    
+    train_data, test_data, train_labels, test_labels = train_test_split(data, labels, test_size=0.2, debug=debug)  
+    
+    flip_train_data, flip_train_labels = create_synth_data(train_data, train_labels)
+    
+    train_data = np.concatenate([train_data, flip_train_data])
+    train_labels = np.concatenate([train_labels, flip_train_labels])
+    
+    # Free up some memory (it crashes on my 16GB RAM laptop if I don't do this)
+    del flip_train_data
+    del flip_train_labels
+    del data
+    del labels
+    
+    print(f'Training data shape: {train_data.shape}, training labels shape: {train_labels.shape}')
+    print(f'Testing data shape: {test_data.shape}, testing labels shape: {test_labels.shape}')
 
     train_loader: DataLoader = create_dataloader(train_data, train_labels, batch_size=batch_size, shuffle=True)
     test_loader: DataLoader = create_dataloader(test_data, test_labels, batch_size=batch_size, shuffle=False)
     
     model = SimpleCNN()
     
-    trainer = Trainer(model, train_loader, test_loader, lr=lr, epochs=epochs)
+    trainer = Trainer(model, train_loader, test_loader, lr=lr, weight_decay=w_decay, epochs=epochs)
     trainer.train()
     
     # Load the best model
@@ -157,6 +172,8 @@ if __name__ == '__main__':
     trainer.test()
 
     trainer.save_model('models/model.pth')
+    
+    trainer.save_and_optimize_onnx('models/model.pth')
     
     # Plot the epoch train test loss
     plt.plot(trainer.epoch_loss, label='Train loss')

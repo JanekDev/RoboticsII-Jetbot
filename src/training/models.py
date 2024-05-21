@@ -3,25 +3,80 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class SimpleCNN(nn.Module):
+    '''
+    538k parameters model
+    '''
     def __init__(self, input_dims = (3, 224, 224)) -> None:
         super(SimpleCNN, self).__init__()
         
         in_channels = input_dims[0]
         
-        self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=6, kernel_size=5)
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.conv2 = nn.Conv2d(in_channels=6, out_channels=16, kernel_size=5)
+        self.sequnce = nn.Sequential(
+            nn.Conv2d(in_channels, 8, kernel_size=3, stride=2),
+            nn.MaxPool2d(kernel_size=2, stride=1),
+            nn.ReLU(),
+            nn.Conv2d(8, 8, kernel_size=3, stride=1),
+            nn.ReLU(),
+            nn.Conv2d(8, 8, kernel_size=3, stride=1),
+            nn.ReLU(),
+            nn.Conv2d(8, 16, kernel_size=3, stride=2),
+            nn.MaxPool2d(kernel_size=2, stride=1),
+            nn.ReLU(),
+            nn.Conv2d(16, 16, kernel_size=3, stride=1),
+            nn.ReLU(),
+            nn.Conv2d(16, 32, kernel_size=3, stride=2),
+            nn.MaxPool2d(kernel_size=2, stride=1),
+            nn.ReLU(),
+            nn.Conv2d(32, 32, kernel_size=3, stride=1),
+            nn.ReLU(),
+            nn.Conv2d(32, 48, kernel_size=3, stride=2),
+            nn.MaxPool2d(kernel_size=2, stride=1),
+            nn.ReLU(),
+            nn.Flatten(),
+            nn.Linear(3888, 128),
+            nn.Dropout(0.5),
+            nn.ReLU(),
+            nn.Linear(128, 64),
+            nn.Dropout(0.5),
+            nn.ReLU(),
+            nn.Linear(64, 2)
+        )
         
-        self.fc1 = nn.Linear(16 * 53 * 53, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 2)
+        # Print number of parameters
+        print(f'Number of parameters: {sum(p.numel() for p in self.parameters())}')
         
     def forward(self, x):
-        x = self.pool(F.relu(self.conv1(x)))
-        x = self.pool(F.relu(self.conv2(x)))
-        x = x.view(-1, 16 * 53 * 53)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
-        return x
-       
+        return self.sequnce(x)
+
+class SimpleCNN2(nn.Module):
+    '''
+    I don't remember how this model behaves
+    '''
+    def __init__(self, input_dims = (3, 224, 224)) -> None:
+        super(SimpleCNN2, self).__init__()
+        
+        in_channels = input_dims[0]
+        
+        self.sequnce = nn.Sequential(
+            nn.Conv2d(in_channels, 8, kernel_size=3, stride=2),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.ReLU(),
+            nn.Conv2d(8, 16, kernel_size=3, stride=2),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.ReLU(),
+            nn.Conv2d(16, 32, kernel_size=3, stride=1),
+            nn.MaxPool2d(kernel_size=2, stride=1),
+            nn.ReLU(),
+            nn.Flatten(),
+            nn.Linear(3200, 128),
+            nn.ReLU(),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, 2)
+        )
+        
+        # Print number of parameters
+        print(f'Number of parameters: {sum(p.numel() for p in self.parameters())}')
+        
+    def forward(self, x):
+        return self.sequnce(x)

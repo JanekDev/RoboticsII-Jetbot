@@ -1,6 +1,9 @@
 dataset/
 src/dataset
 *dataset*/
+*.onnx
+*.pth
+*.zip
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
