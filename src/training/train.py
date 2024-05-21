@@ -7,6 +7,10 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
+import onnx
+import onnxruntime as ort
+from onnxruntime.transformers import optimizer
+
 print(os.getcwd())
 
 from dataloading_utils import load_data, train_test_split, create_dataloader
@@ -71,6 +75,22 @@ class Trainer:
             
     def save_model(self, path: str) -> None:
         torch.save(self.model.state_dict(), path)
+
+    def save_and_optimize_onnx(self, path: str):
+        onnx_model_path = path.replace('.pth', '.onnx')
+        dummy_input = torch.randn(1, 3, 224, 224).to(self.device)
+        torch.onnx.export(self.model, dummy_input, onnx_model_path, 
+                          input_names=['input'], output_names=['output'],
+                          dynamic_axes={'input': {0: 'batch_size'}, 'output': {0: 'batch_size'}})
+        print(f'Model exported to ONNX at {onnx_model_path}')
+        
+        onnx_model = onnx.load(onnx_model_path)
+        
+        optimized_model_path = path.replace('.pth', '_optimized.onnx')
+        optimization_options = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+        optimized_model = optimizer.optimize_model(onnx_model, optimization_options)
+        optimized_model.save_model_to_file(optimized_model_path)
+        print(f'Optimized ONNX model saved at {optimized_model_path}')
         
     def load_model(self, path: str) -> None:
         self.model.load_state_dict(torch.load(path))
