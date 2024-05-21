@@ -108,16 +108,27 @@ def main():
 
     input('Robot is ready to ride. Press Enter to start...')
 
+    report_times = False  # TODO: config (?)
+
     forward, left = 0.0, 0.0
     while True:
         print(f'Forward: {forward:.4f}\tLeft: {left:.4f}')
         driver.update(forward, left)
-
+        
+        tic = time.time()
         ret, image = video_capture.read()
+        tac = time.time()
+        if report_times:
+            print(f"Frame capture took {tac - tic} seconds")
+
         if not ret:
             print('No camera')
             break
         forward, left = ai.predict(image)
+
+        tic2 = time.time()
+        if report_times:
+            print(f"Prediction took {tic2 - tac} seconds")
 
 
 if __name__ == '__main__':
