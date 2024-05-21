@@ -34,8 +34,10 @@ class SimpleCNN(nn.Module):
             nn.ReLU(),
             nn.Flatten(),
             nn.Linear(3888, 128),
+            nn.Dropout(0.5),
             nn.ReLU(),
             nn.Linear(128, 64),
+            nn.Dropout(0.5),
             nn.ReLU(),
             nn.Linear(64, 2)
         )
