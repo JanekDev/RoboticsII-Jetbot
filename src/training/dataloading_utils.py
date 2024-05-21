@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
+import matplotlib.pyplot as plt
 import os 
 import pandas as pd
 import cv2
@@ -111,4 +112,25 @@ def create_dataloader(data: np.ndarray, labels: np.ndarray, batch_size: int = 32
     dataset = TensorDataset(x, y)
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
 
+def create_synth_data(data: np.ndarray, labels: np.ndarray, debug: bool = False) -> tuple[np.ndarray, np.ndarray]:
+    '''
+    Create synthetic data by flipping the images (and steering_signal) horizontally
     
+    Args:
+    
+    `data`: The data to add noise to.
+    `labels`: The labels to return.
+    '''
+    
+    flipped_data = np.flip(data, axis=3)
+    flipped_labels = np.copy(labels)
+    flipped_labels[:, 1] *= -1 # [forward, left] -> [forward, right]
+    
+    if debug:
+        # Show the first image and the flipped image
+        plt.imshow(data[0].transpose(1, 2, 0))
+        plt.show()
+        plt.imshow(flipped_data[0].transpose(1, 2, 0))
+        plt.show()
+    
+    return flipped_data, flipped_labels
