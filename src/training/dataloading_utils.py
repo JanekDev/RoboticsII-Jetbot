@@ -12,7 +12,6 @@ DATASET_PATH = 'dataset'
 BATCH_SIZE = 32
 
 transform = A.Compose([
-    A.HorizontalFlip(p=0.5),
     A.RandomBrightnessContrast(p=0.2),
     A.GaussNoise(p=0.2),
     A.Resize(224, 224)
@@ -44,6 +43,7 @@ def load_data(data_folder_path: str, debug: bool = True) -> tuple[list[np.ndarra
             
             if os.path.exists(os.path.join(data_folder_path, folder, img_name)):
                 img = cv2.imread(os.path.join(data_folder_path, folder, img_name))
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             else:
                 print(f'File {img_name} not found in {os.path.join(data_folder_path, folder)}')
                 continue
