@@ -27,11 +27,22 @@ class Trainer:
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
         
         self.loss_history = []
+        self.test_history = []
+        self.epoch_loss = []
         self.batch_inference_time = []
         
     def train(self):
+        
+        self.best_model = None
+        best_mse = float('inf')
+        best_epoch = 0
+        patience = 5
+        
         for epoch in range(self.epochs):
             self.model.train()
+            
+            loss_epoch = 0
+            
             for i, (data, labels) in enumerate(self.train_loader):
                 data, labels = data.to(self.device), labels.to(self.device)
                 
@@ -40,12 +51,27 @@ class Trainer:
                 loss = self.criterion(outputs, labels)
                 
                 self.loss_history.append(loss.item())
+                loss_epoch += loss.item()
                 
                 loss.backward()
                 self.optimizer.step()
                 
                 if i % 10 == 0:
                     print(f'Epoch: {epoch}, Iteration: {i}, Loss: {loss.item()}')
+                    
+            mse = self.test()
+            self.test_history.append(mse)
+            self.epoch_loss.append(loss_epoch / len(self.train_loader))
+            
+            if mse < best_mse:
+                best_mse = mse
+                self.best_model = self.model.state_dict()
+                best_epoch = epoch
+                
+            if epoch - best_epoch > patience:
+                print('Early stopping')
+                break
+            
                     
     def test(self):
         self.model.eval()
@@ -69,6 +95,8 @@ class Trainer:
             print(f'Mean Squared Error: {mse}')
             print(f'Average inference time: {self.average_inference_time * 1000:.3f} ms')
             
+        return mse
+            
     def save_model(self, path: str) -> None:
         torch.save(self.model.state_dict(), path)
         
@@ -87,17 +115,11 @@ if __name__ == '__main__':
     
     dataset_path = 'dataset'
     debug = True
-    batch_size = 32
+    batch_size = 256
     lr = 2e-4
-    epochs = 3
+    epochs = 10
     
     data, labels = load_data(dataset_path, debug=debug)
-    
-    # if debug:
-    #     # Show the first image
-    #     cv2.imshow('Image', data[0][0].transpose(1, 2, 0))
-    #     cv2.waitKey(0)
-    #     cv2.destroyAllWindows()
     
     train_data, test_data, train_labels, test_labels = train_test_split(data, labels, test_size=0.2, debug=debug)    
 
@@ -108,15 +130,22 @@ if __name__ == '__main__':
     
     trainer = Trainer(model, train_loader, test_loader, lr=lr, epochs=epochs)
     trainer.train()
+    
+    # Load the best model
+    trainer.model.load_state_dict(trainer.best_model)
+    
     trainer.test()
 
     trainer.save_model('models/model.pth')
     
-    fig, ax = plt.subplots()
-    plt.plot(trainer.loss_history)
-    plt.xlabel('Iteration')
+    # Plot the epoch train test loss
+    plt.plot(trainer.epoch_loss, label='Train loss')
+    plt.plot(trainer.test_history, label='Test loss')
+    plt.xlabel('Epoch')
     plt.ylabel('Loss')
+    plt.legend()
     plt.show()
+    
     
     trainer.measure_inference_time()
     print(f'Average inference time: {trainer.average_inference_time}')
