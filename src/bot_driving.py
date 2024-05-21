@@ -82,7 +82,9 @@ def main():
     driver = PUTDriver(config=config)
     ai = AI(config=config)
 
-    video_capture = cv2.VideoCapture(gstreamer_pipeline(flip_method=0, display_width=224, display_height=224), cv2.CAP_GSTREAMER)
+    video_capture = cv2.VideoCapture(gstreamer_pipeline(flip_method=0, display_width=224, display_height=224,
+        framerate=15,
+    ), cv2.CAP_GSTREAMER)
 
     # model warm-up
     ret, image = video_capture.read()
@@ -93,7 +95,7 @@ def main():
     _ = ai.predict(image)
 
     # Longer camera and model warm-up
-    WARMUP_FRAMES = 60
+    WARMUP_FRAMES = 30
     print("Warming up...")
     warmup_tic = time.time()
     for _n in range(WARMUP_FRAMES):
@@ -102,14 +104,14 @@ def main():
             print('No camera')
             return
         forward, left = ai.predict(image)
-        print(f" [warmup] Predicted {forward:.4f}\t{left:.4f}")
+        # print(f" [warmup] Predicted {forward:.4f}\t{left:.4f}")
     warmup_tac = time.time()
     print(f" [ok] Took {warmup_tac - warmup_tic} seconds "
           f"({((warmup_tac - warmup_tic) * 1000 / WARMUP_FRAMES):.3f} ms per frame)")
 
     input('Robot is ready to ride. Press Enter to start...')
 
-    report_times = False  # TODO: config (?)
+    report_times = True  # TODO: config (?)
 
     forward, left = 0.0, 0.0
     while True:
