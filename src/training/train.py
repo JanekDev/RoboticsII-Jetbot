@@ -138,7 +138,7 @@ if __name__ == '__main__':
     batch_size = 64
     lr = 2e-4
     w_decay = 1e-5
-    epochs = 10
+    epochs = 15
     
     data, labels = load_data(dataset_path, debug=debug)
     
