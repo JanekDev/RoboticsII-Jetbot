@@ -66,8 +66,8 @@ class AI:
 
         assert steering_signal.dtype == np.float32
         assert steering_signal.shape == (2,)
-        assert steering_signal.max() < 1.0
-        assert steering_signal.min() > -1.0
+        assert steering_signal.max() <= 1.0
+        assert steering_signal.min() >= -1.0
 
         return steering_signal
 
