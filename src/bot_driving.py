@@ -1,5 +1,6 @@
 import cv2
 import onnxruntime as rt
+import time
 
 from pathlib import Path
 import yaml
@@ -85,23 +86,49 @@ def main():
     # model warm-up
     ret, image = video_capture.read()
     if not ret:
-        print(f'No camera')
+        print('No camera')
         return
     
     _ = ai.predict(image)
 
+    # Longer camera and model warm-up
+    WARMUP_FRAMES = 60
+    print("Warming up...")
+    warmup_tic = time.time()
+    for _n in range(WARMUP_FRAMES):
+        ret, image = video_capture.read()
+        if not ret:
+            print('No camera')
+            return
+        forward, left = ai.predict(image)
+        print(f" [warmup] Predicted {forward:.4f}\t{left:.4f}")
+    warmup_tac = time.time()
+    print(f" [ok] Took {warmup_tac - warmup_tic} seconds "
+          f"({((warmup_tac - warmup_tic) * 1000 / WARMUP_FRAMES):.3f} ms per frame)")
+
     input('Robot is ready to ride. Press Enter to start...')
+
+    report_times = False  # TODO: config (?)
 
     forward, left = 0.0, 0.0
     while True:
         print(f'Forward: {forward:.4f}\tLeft: {left:.4f}')
         driver.update(forward, left)
-
+        
+        tic = time.time()
         ret, image = video_capture.read()
+        tac = time.time()
+        if report_times:
+            print(f"Frame capture took {tac - tic} seconds")
+
         if not ret:
-            print(f'No camera')
+            print('No camera')
             break
         forward, left = ai.predict(image)
+
+        tic2 = time.time()
+        if report_times:
+            print(f"Prediction took {tic2 - tac} seconds")
 
 
 if __name__ == '__main__':
