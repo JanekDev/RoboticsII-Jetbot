@@ -62,7 +62,7 @@ class AI:
             self.update_buffer(outputs)
             steering_signal = self.calculate_steering().astype(np.float32)
         else:
-            steering_signal = outputs
+            steering_signal = outputs[0]  # NOTE: batch dim.
 
         assert steering_signal.dtype == np.float32
         assert steering_signal.shape == (2,)
