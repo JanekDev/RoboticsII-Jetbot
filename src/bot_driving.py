@@ -59,7 +59,7 @@ class AI:
         
         if self.buffer_size > 1:
             self.update_buffer(outputs)
-            steering_signal = self.calculate_steering()
+            steering_signal = self.calculate_steering().astype(np.float32)
         else:
             steering_signal = outputs
 
