@@ -121,7 +121,8 @@ def main():
         tic = time.time()
         ret, image = video_capture.read()
         tac = time.time()
-        if report_times:
+        if report_times and (tac - tic) > 0.001:
+            # example: Frame capture took 0.000158 seconds
             print(f"Frame capture took {tac - tic} seconds")
 
         if not ret:
