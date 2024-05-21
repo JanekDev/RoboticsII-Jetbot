@@ -1,6 +1,7 @@
 import cv2
 import onnxruntime as rt
 import time
+from typing import Tuple, List
 
 from pathlib import Path
 import yaml
@@ -33,11 +34,11 @@ class AI:
         detections = np.clip(detections, -1.0, 1.0)
         return detections
     
-    def update_buffer(self, steering_signal: tuple[float, float]) -> None:
+    def update_buffer(self, steering_signal: Tuple[float, float]) -> None:
         self.buffer[:-1] = self.buffer[1:]
         self.buffer[-1] = steering_signal
         
-    def calculate_steering(self) -> tuple[float, float]:
+    def calculate_steering(self) -> Tuple[float, float]:
         # Calculate as the exponential moving average of the last buffer_size signals
         weights = np.exp(np.arange(self.buffer_size)) # Exponential weights, the latest signal has the highest weight
         weights /= weights.sum()
