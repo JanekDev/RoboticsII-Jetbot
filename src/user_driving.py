@@ -1,4 +1,6 @@
 import cv2
+# https://pypi.org/project/inputs/ ?
+# https://inputs.readthedocs.io/en/latest/
 from inputs import get_gamepad
 import click
 import math
@@ -29,6 +31,14 @@ class XboxController(object):
         left = (self.RightJoystickX-127)*(-1)/128
         return [forward, left]
 
+# example events:
+# print(e, e.code, e.state, e.ev_type)
+# ABS_RZ 127 Absolute
+# SYN_REPORT 0 Sync
+# ABS_RZ 255 Absolute
+# SYN_REPORT 0 Sync
+# ABS_RZ 127 Absolute
+# SYN_REPORT 0 Sync
 
     def _monitor_controller(self):
         while True:
@@ -63,6 +73,15 @@ def main(record):
     driver = PUTDriver(config=config)
 
     video_capture = cv2.VideoCapture(gstreamer_pipeline(flip_method=0, display_width=224, display_height=224), cv2.CAP_GSTREAMER)
+
+    print('Turn gamepad sticks around to center.')
+    while True:
+        forward, left = joy.read()
+        print(f'Forward: {forward:.4f}\tLeft: {left:.4f}')
+        if abs(forward) < 0.05 and abs(left) < 0.05:
+            print('\n\nCentered')
+            break
+    input('Press enter> ')
 
     if record:
         prev_image = video_capture.read()[1]
