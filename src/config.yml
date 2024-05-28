@@ -7,4 +7,5 @@ robot:
   differential:
     left: 1.0
     right: 0.9
-  buffer_size: 10
+  buffer_size: 30
+  momentum_base: 1.3

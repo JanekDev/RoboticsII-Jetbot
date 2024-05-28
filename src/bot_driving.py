@@ -21,6 +21,7 @@ class AI:
         self.input_name = self.sess.get_inputs()[0].name
 
         self.buffer_size = config['robot']['buffer_size']
+        self.base_exponent = config['robot']['momentum_base']
         self.buffer = np.zeros((self.buffer_size, 2))
         self.buffer[0] += forward_initial
 
@@ -42,7 +43,7 @@ class AI:
 
     def calculate_steering(self) -> Tuple[float, float]:
         # Calculate as the exponential moving average of the last buffer_size signals
-        weights = np.exp(np.arange(self.buffer_size)) # Exponential weights, the latest signal has the highest weight
+        weights = self.base_exponent ** np.arange(self.buffer_size) # Exponential weights, the latest signal has the highest weight
         weights /= weights.sum()
         weights = np.expand_dims(weights, 1)
 
