@@ -39,14 +39,16 @@ class SimpleCNN(nn.Module):
             nn.Linear(128, 64),
             nn.Dropout(0.5),
             nn.ReLU(),
-            nn.Linear(64, 2)
+            nn.Linear(64, 3)
         )
         
         # Print number of parameters
         print(f'Number of parameters: {sum(p.numel() for p in self.parameters())}')
         
     def forward(self, x):
-        return self.sequnce(x)
+        outputs = self.sequnce(x)
+        outputs[:, 2] = torch.sigmoid(outputs[:, 2])
+        return outputs
 
 class SimpleCNN2(nn.Module):
     '''
@@ -72,11 +74,13 @@ class SimpleCNN2(nn.Module):
             nn.ReLU(),
             nn.Linear(128, 64),
             nn.ReLU(),
-            nn.Linear(64, 2)
+            nn.Linear(64, 3)
         )
         
         # Print number of parameters
         print(f'Number of parameters: {sum(p.numel() for p in self.parameters())}')
         
     def forward(self, x):
-        return self.sequnce(x)
+        outputs = self.sequnce(x)
+        outputs[:, 2] = torch.sigmoid(outputs[:, 2])
+        return outputs

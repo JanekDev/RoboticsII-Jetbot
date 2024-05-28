@@ -57,6 +57,11 @@ class AI:
         
         detections = self.sess.run([self.output_name], {self.input_name: inputs})[0]
         outputs = self.postprocess(detections)
+
+        # sign has probablility value from 0 to 1, so we need to convert it to -1 or 1
+        sign = 1 if outputs[0, 2] > 0.5 else -1
+        outputs[:, 1] = outputs[:, 1] * sign
+        outputs = outputs[:, :2]
         
         if self.buffer_size > 1:
             self.update_buffer(outputs)

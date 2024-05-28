@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 import onnx
@@ -15,6 +16,31 @@ print(os.getcwd())
 
 from dataloading_utils import load_data, train_test_split, create_dataloader, create_synth_data
 from models import SimpleCNN, SimpleCNN2
+
+def sign_magnitude_loss(output, target):
+    '''
+    Sign magnitude loss function
+    '''
+    # Split the target and output into their respective components
+    target_forward_speed = target[:, 0]
+    target_steering_speed = target[:, 1]
+
+    output_forward_speed = output[:, 0]
+    output_steering_magnitude = output[:, 1]
+    output_steering_sign = output[:, 2]
+
+    forward_speed_loss = F.mse_loss(output_forward_speed, target_forward_speed)
+
+    steering_magnitude_loss = F.mse_loss(output_steering_magnitude, torch.abs(target_steering_speed))
+
+    target_steering_sign = torch.sign(target_steering_speed)
+    target_steering_prob = (target_steering_sign + 1) / 2  # Convert -1/1 to 0/1 probabilities
+
+    bce_logits_loss = F.binary_cross_entropy(output_steering_sign, target_steering_prob)
+
+    total_loss = (forward_speed_loss + steering_magnitude_loss) * 1.5 + bce_logits_loss
+
+    return total_loss
 
 class Trainer:
     def __init__(self, model: nn.Module, train_loader: DataLoader, test_loader: DataLoader, lr: float = 1e-3, weight_decay: float = 1e-5, epochs: int = 10) -> None:
@@ -27,7 +53,7 @@ class Trainer:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model.to(self.device)
         
-        self.criterion = nn.HuberLoss()
+        self.criterion = sign_magnitude_loss
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr, weight_decay=1e-5)
         
         self.loss_history = []
@@ -87,7 +113,10 @@ class Trainer:
                 # Calculate mse
                 data, labels = data.to(self.device), labels.to(self.device)
                 outputs = self.model(data)
-                
+                # take the last component of the output and get the sign
+                sign = torch.sign(outputs[:, 2])
+                outputs[:, 1] = outputs[:, 1] * sign
+                outputs = outputs[:, :2]
                 loss = nn.functional.mse_loss(outputs, labels)
                 mse += loss.item()
                 
@@ -135,10 +164,10 @@ if __name__ == '__main__':
     
     dataset_path = 'dataset'
     debug = True
-    batch_size = 64
+    batch_size = 128
     lr = 2e-4
     w_decay = 1e-5
-    epochs = 15
+    epochs = 1
     
     data, labels = load_data(dataset_path, debug=debug)
     
